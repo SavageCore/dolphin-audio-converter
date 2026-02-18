@@ -1,0 +1,27 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Create release tarball
+        run: |
+          tar -czvf "dolphin-audio-converter-${{ github.ref_name }}.tar.gz" \
+            --transform "s,^,dolphin-audio-converter-${{ github.ref_name }}/," \
+            dolphin-audio-converter.py \
+            dolphin-audio-converter.desktop \
+            install.sh
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "dolphin-audio-converter-${{ github.ref_name }}.tar.gz"

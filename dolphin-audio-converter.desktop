@@ -1,0 +1,49 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=KonqPopupMenu/Plugin
+MimeType=audio/*;video/*;
+Actions=convertToMp3;convertToOgg;convertToFlac;convertToWav;convertToM4a;convertToOpus;convertToAlac;separator;configure;
+X-KDE-Submenu=Audio Converter
+
+[Desktop Action convertToMp3]
+Name=Convert to MP3 (V0)
+Icon=audio-x-mp3
+Exec="__USER_HOME__/.local/bin/dolphin-audio-converter" --format mp3 %F
+
+[Desktop Action convertToOgg]
+Name=Convert to OGG (Q6)
+Icon=audio-x-vorbis+ogg
+Exec="__USER_HOME__/.local/bin/dolphin-audio-converter" --format ogg %F
+
+[Desktop Action convertToFlac]
+Name=Convert to FLAC
+Icon=audio-x-flac
+Exec="__USER_HOME__/.local/bin/dolphin-audio-converter" --format flac %F
+
+[Desktop Action convertToWav]
+Name=Convert to WAV
+Icon=audio-x-wav
+Exec="__USER_HOME__/.local/bin/dolphin-audio-converter" --format wav %F
+
+[Desktop Action convertToM4a]
+Name=Convert to M4A (AAC) (192k)
+Icon=audio-x-m4a
+Exec="__USER_HOME__/.local/bin/dolphin-audio-converter" --format m4a %F
+
+[Desktop Action convertToOpus]
+Name=Convert to Opus (128k)
+Icon=audio-x-opus+ogg
+Exec="__USER_HOME__/.local/bin/dolphin-audio-converter" --format opus %F
+
+[Desktop Action convertToAlac]
+Name=Convert to ALAC (M4A)
+Icon=audio-x-generic
+Exec="__USER_HOME__/.local/bin/dolphin-audio-converter" --format alac %F
+
+[Desktop Action separator]
+Name=
+
+[Desktop Action configure]
+Name=Configure…
+Icon=configure
+Exec="__USER_HOME__/.local/bin/dolphin-audio-converter" --configure
