@@ -1,0 +1,10 @@
+[project]
+name = "dolphin-audio-converter"
+version = "0.1.0"
+description = "A KDE/Dolphin service menu for converting audio and video files to common audio formats using ffmpeg."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[dependency-groups]
+dev = ["pre-commit>=4.5.1", "ruff>=0.15.1"]
