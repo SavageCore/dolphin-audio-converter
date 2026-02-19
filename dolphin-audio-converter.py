@@ -23,64 +23,69 @@ from pathlib import Path
 CONFIG_DIR = Path.home() / ".config" / "dolphin-audio-converter"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
+USER_SHARE = Path.home() / ".local" / "share"
 DESKTOP_PATHS = [
-    Path.home()
-    / ".local"
-    / "share"
-    / "kio"
-    / "servicemenus"
-    / "dolphin-audio-converter.desktop",
-    Path.home()
-    / ".local"
-    / "share"
-    / "kservices5"
-    / "ServiceMenus"
-    / "dolphin-audio-converter.desktop",
+    USER_SHARE / "kio" / "servicemenus" / "dolphin-audio-converter.desktop",
+    USER_SHARE / "kservices5" / "ServiceMenus" / "dolphin-audio-converter.desktop",
 ]
 
 # ─── Format metadata ──────────────────────────────────────────────────────────
-LOSSY_FORMATS = {
-    "mp3",
-    "ogg",
-    "m4a",
-    "aac",
-    "opus",
-    "wma",
-    "m4b",
-    "ra",
-    "rm",
-    "amr",
-    "3gp",
-}
 
-FORMAT_DISPLAY = {
-    "mp3": "MP3",
-    "ogg": "OGG (Vorbis)",
-    "flac": "FLAC",
-    "wav": "WAV",
-    "m4a": "M4A (AAC)",
-    "opus": "Opus",
-    "alac": "ALAC (M4A)",
-}
 
-FORMAT_QUALITY_OPTIONS = {
-    "mp3": ["V0", "V2", "V4", "128k", "192k", "256k", "320k"],
-    "ogg": ["Q6", "Q3", "Q5", "Q8", "Q10"],
-    "m4a": ["192k", "128k", "256k", "320k"],
-    "opus": ["128k", "64k", "96k", "192k", "256k"],
-    "flac": ["lossless"],
-    "wav": ["lossless"],
-    "alac": ["lossless"],
-}
-
-DEFAULT_CONFIG = {
-    "mp3": "V0",
-    "ogg": "Q6",
-    "m4a": "192k",
-    "opus": "128k",
-    "flac": "lossless",
-    "wav": "lossless",
-    "alac": "lossless",
+FORMAT_DEFS = {
+    "mp3": {
+        "label": "MP3",
+        "options": [
+            ("V0", "VBR ~245 kbps (best)"),
+            ("V2", "VBR ~190 kbps"),
+            ("V4", "VBR ~165 kbps"),
+            ("128k", "CBR 128 kbps"),
+            ("192k", "CBR 192 kbps"),
+            ("256k", "CBR 256 kbps"),
+            ("320k", "CBR 320 kbps (max)"),
+        ],
+    },
+    "ogg": {
+        "label": "OGG (Vorbis)",
+        "options": [
+            ("Q6", "~192 kbps (default)"),
+            ("Q3", "~112 kbps"),
+            ("Q5", "~160 kbps"),
+            ("Q8", "~256 kbps"),
+            ("Q10", "~500 kbps (best)"),
+        ],
+    },
+    "flac": {
+        "label": "FLAC",
+        "options": [("lossless", "Lossless")],
+    },
+    "wav": {
+        "label": "WAV",
+        "options": [("lossless", "Lossless (PCM 16-bit)")],
+    },
+    "m4a": {
+        "label": "M4A (AAC)",
+        "options": [
+            ("192k", "192 kbps (default)"),
+            ("128k", "128 kbps"),
+            ("256k", "256 kbps"),
+            ("320k", "320 kbps"),
+        ],
+    },
+    "opus": {
+        "label": "Opus",
+        "options": [
+            ("128k", "128 kbps (default)"),
+            ("64k", "64 kbps (voice)"),
+            ("96k", "96 kbps"),
+            ("192k", "192 kbps"),
+            ("256k", "256 kbps (transparent)"),
+        ],
+    },
+    "alac": {
+        "label": "ALAC (M4A)",
+        "options": [("lossless", "Lossless")],
+    },
 }
 
 CODEC_CATEGORY = {
@@ -120,15 +125,16 @@ QDBUS = next(
 
 # ─── Config helpers ───────────────────────────────────────────────────────────
 def load_config() -> dict:
+    defaults = {fmt: data["options"][0][0] for fmt, data in FORMAT_DEFS.items()}
     if CONFIG_FILE.exists():
         try:
             data = json.loads(CONFIG_FILE.read_text())
-            for k, v in DEFAULT_CONFIG.items():
+            for k, v in defaults.items():
                 data.setdefault(k, v)
             return data
         except Exception:
             pass
-    return dict(DEFAULT_CONFIG)
+    return defaults
 
 
 def save_config(cfg: dict):
@@ -152,15 +158,14 @@ def update_desktop_names(cfg: dict):
     desktop = find_desktop_file()
     if not desktop:
         return
-    name_map = {
-        "convertToMp3": f"Convert to MP3{quality_label(cfg['mp3'])}",
-        "convertToOgg": f"Convert to OGG{quality_label(cfg['ogg'])}",
-        "convertToFlac": "Convert to FLAC",
-        "convertToWav": "Convert to WAV",
-        "convertToM4a": f"Convert to M4A (AAC){quality_label(cfg['m4a'])}",
-        "convertToOpus": f"Convert to Opus{quality_label(cfg['opus'])}",
-        "convertToAlac": "Convert to ALAC (M4A)",
-    }
+    name_map = {}
+    for fmt, data in FORMAT_DEFS.items():
+        q = cfg[fmt]
+        ql = f" ({q})" if q != "lossless" else ""
+        # The key in desktop file actions is typically convertTo<FmtTitle>
+        # e.g. convertToMp3, convertToOgg, convertToFlac
+        key = f"convertTo{fmt.capitalize()}"
+        name_map[key] = f"Convert to {data['label']}{ql}"
     lines = desktop.read_text().splitlines()
     current_action = None
     out = []
@@ -307,7 +312,16 @@ def pbar_close(handle: tuple | None):
 # ─── Lossy warnings ───────────────────────────────────────────────────────────
 def warn_if_lossy(input_codec: str | None, output_fmt: str) -> bool:
     src_cat = CODEC_CATEGORY.get(input_codec, "unknown")
-    dst_lossy = output_fmt in LOSSY_FORMATS
+    dst_data = FORMAT_DEFS.get(output_fmt)
+    # Check if 'lossless' is the only option (or one of them? usually simpler to check first option)
+    # For formats like FLAC, options=[('lossless', 'Lossless')]
+    is_lossless = False
+    if dst_data:
+        opts = dst_data["options"]
+        if len(opts) == 1 and opts[0][0] == "lossless":
+            is_lossless = True
+
+    dst_lossy = not is_lossless
 
     if src_cat == "lossy" and dst_lossy:
         r = kdialog(
@@ -492,45 +506,18 @@ def convert_files(files: list, fmt: str, quality: str):
 
 
 # ─── Configure dialog ─────────────────────────────────────────────────────────
-def _quality_desc(fmt: str, q: str) -> str:
-    table = {
-        "mp3": {
-            "V0": "VBR ~245 kbps (best)",
-            "V2": "VBR ~190 kbps",
-            "V4": "VBR ~165 kbps",
-            "128k": "CBR 128 kbps",
-            "192k": "CBR 192 kbps",
-            "256k": "CBR 256 kbps",
-            "320k": "CBR 320 kbps (max)",
-        },
-        "ogg": {
-            "Q3": "~112 kbps",
-            "Q5": "~160 kbps",
-            "Q6": "~192 kbps (default)",
-            "Q8": "~256 kbps",
-            "Q10": "~500 kbps (best)",
-        },
-        "m4a": {
-            "128k": "128 kbps",
-            "192k": "192 kbps (default)",
-            "256k": "256 kbps",
-            "320k": "320 kbps",
-        },
-        "opus": {
-            "64k": "64 kbps (voice)",
-            "96k": "96 kbps",
-            "128k": "128 kbps (default)",
-            "192k": "192 kbps",
-            "256k": "256 kbps (transparent)",
-        },
-    }
-    return table.get(fmt, {}).get(q, q)
-
-
+# ─── Configure dialog ─────────────────────────────────────────────────────────
 def run_configure():
     cfg = load_config()
+    defaults = {fmt: data["options"][0][0] for fmt, data in FORMAT_DEFS.items()}
+
+    # Only show formats that have more than 1 option?
+    # Or show all "lossy" ones with choices?
+    # Original logic: if opts != ["lossless"]
     configurable = [
-        f for f, opts in FORMAT_QUALITY_OPTIONS.items() if opts != ["lossless"]
+        fmt
+        for fmt, data in FORMAT_DEFS.items()
+        if not (len(data["options"]) == 1 and data["options"][0][0] == "lossless")
     ]
 
     menu_args = [
@@ -540,8 +527,9 @@ def run_configure():
         "Select a format to configure:",
     ]
     for f in configurable:
-        cur = cfg.get(f, DEFAULT_CONFIG[f])
-        menu_args += [f, f"{FORMAT_DISPLAY[f]}   (currently: {cur})"]
+        cur = cfg.get(f, defaults[f])
+        label = FORMAT_DEFS[f]["label"]
+        menu_args += [f, f"{label}   (currently: {cur})"]
 
     r = kdialog(*menu_args)
     if r.returncode != 0:
@@ -550,24 +538,27 @@ def run_configure():
     if chosen_fmt not in configurable:
         return
 
-    options = FORMAT_QUALITY_OPTIONS[chosen_fmt]
-    current = cfg.get(chosen_fmt, options[0])
+    fmt_def = FORMAT_DEFS[chosen_fmt]
+    options = fmt_def["options"]  # list of (value, desc)
+    current = cfg.get(chosen_fmt, options[0][0])
 
     q_args = [
         "--title",
-        f"Configure {FORMAT_DISPLAY[chosen_fmt]}",
+        f"Configure {fmt_def['label']}",
         "--menu",
-        f"Output quality for {FORMAT_DISPLAY[chosen_fmt]}:",
+        f"Output quality for {fmt_def['label']}:",
     ]
-    for opt in options:
-        marker = "  ✔" if opt == current else ""
-        q_args += [opt, f"{opt} - {_quality_desc(chosen_fmt, opt)}{marker}"]
+    for val, desc in options:
+        marker = "  ✔" if val == current else ""
+        q_args += [val, f"{val} - {desc}{marker}"]
 
     r2 = kdialog(*q_args)
     if r2.returncode != 0:
         return
     chosen_q = r2.stdout.strip()
-    if chosen_q not in options:
+    # Validate choice
+    valid_vals = [o[0] for o in options]
+    if chosen_q not in valid_vals:
         return
 
     cfg[chosen_fmt] = chosen_q
@@ -576,7 +567,7 @@ def run_configure():
 
     notify(
         "Audio Converter - Settings saved",
-        f"{FORMAT_DISPLAY[chosen_fmt]} quality → {chosen_q}",
+        f"{fmt_def['label']} quality → {chosen_q}",
         "configure",
     )
 
@@ -598,10 +589,11 @@ def main():
         sys.exit(1)
 
     fmt = args.format.lower()
-    if fmt not in FORMAT_QUALITY_OPTIONS:
+    if fmt not in FORMAT_DEFS:
+        supported = ", ".join(FORMAT_DEFS.keys())
         kdialog(
             "--error",
-            f"Unknown format: '{fmt}'\nSupported: {', '.join(FORMAT_QUALITY_OPTIONS)}",
+            f"Unknown format: '{fmt}'\nSupported: {supported}",
         )
         sys.exit(1)
 
@@ -622,7 +614,9 @@ def main():
         sys.exit(1)
 
     cfg = load_config()
-    quality = cfg.get(fmt, DEFAULT_CONFIG.get(fmt, ""))
+    # If not in config, use the first option as default
+    default_q = FORMAT_DEFS[fmt]["options"][0][0]
+    quality = cfg.get(fmt, default_q)
     convert_files(args.files, fmt, quality)
 
 

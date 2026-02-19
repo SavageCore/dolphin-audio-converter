@@ -15,6 +15,21 @@ warn()    { echo "${YELLOW}⚠${RESET} $*"; }
 error()   { echo "${RED}✘${RESET} $*" >&2; }
 header()  { echo; echo "${BOLD}${CYAN}$*${RESET}"; printf '─%.0s' {1..60}; echo; }
 
+warn_install_instructions() {
+    local cmd="$1"
+    local reason="$2"
+    local apt="$3"
+    local dnf="$4"
+    local pac="$5"
+    local zyp="$6"
+
+    warn "$cmd not found - $reason"
+    warn "  sudo apt install $apt      (Debian/Ubuntu/Mint)"
+    warn "  sudo dnf install $dnf      (Fedora)"
+    warn "  sudo pacman -S $pac        (Arch/Manjaro)"
+    warn "  sudo zypper install $zyp   (openSUSE)"
+}
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_SRC="$SCRIPT_DIR/dolphin-audio-converter.py"
 DESKTOP_SRC="$SCRIPT_DIR/dolphin-audio-converter.desktop"
@@ -49,22 +64,23 @@ install_app() {
     MISSING=()
 
     if ! command -v python3 &>/dev/null; then
+        warn_install_instructions "python3" "required to run the converter:" \
+            "python3" "python3" "python" "python3"
         MISSING+=("python3")
     else
         success "python3 $(python3 --version 2>&1 | grep -oP '[\d.]+')"
     fi
 
     if ! command -v ffmpeg &>/dev/null; then
-        warn "ffmpeg not found - install it for conversions to work:"
-        warn "  sudo apt install ffmpeg      (Debian/Ubuntu/Mint)"
-        warn "  sudo dnf install ffmpeg      (Fedora)"
-        warn "  sudo pacman -S ffmpeg        (Arch/Manjaro)"
-        warn "  sudo zypper install ffmpeg   (openSUSE)"
+        warn_install_instructions "ffmpeg" "install it for conversions to work:" \
+            "ffmpeg" "ffmpeg" "ffmpeg" "ffmpeg"
     else
         success "ffmpeg $(ffmpeg -version 2>&1 | grep -oP 'ffmpeg version \S+')"
     fi
 
     if ! command -v kdialog &>/dev/null; then
+        warn_install_instructions "kdialog" "required for GUI dialogs:" \
+            "kdialog" "kdialog" "kdialog" "kdialog"
         MISSING+=("kdialog")
     else
         success "kdialog found"
@@ -78,15 +94,15 @@ install_app() {
         fi
     done
     if [[ -z "$QDBUS_BIN" ]]; then
-        warn "qdbus not found - progress bar will open but won't animate"
-        warn "Install: sudo apt install qdbus  (or qt6-tools)"
+        warn_install_instructions "qdbus" "progress bar animation requires it:" \
+            "qdbus-qt5" "qt5-qttools" "qt5-tools" "libqt5-qttools"
     else
         success "$QDBUS_BIN found"
     fi
 
     if ! command -v notify-send &>/dev/null; then
-        warn "notify-send not found - completion popups will be skipped"
-        warn "Install: sudo apt install libnotify-bin"
+        warn_install_instructions "notify-send" "completion popups will be skipped:" \
+            "libnotify-bin" "libnotify" "libnotify" "libnotify-tools"
     else
         success "notify-send found"
     fi
