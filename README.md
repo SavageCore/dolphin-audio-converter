@@ -90,24 +90,29 @@ The installer will:
 
 After installation, right-click any audio or video file in Dolphin and look for the **Audio Converter** submenu.
 
-## Uninstalling
+## Uninstall
 
-If installed manually via archive:
+### Option 1: Remove from Dolphin
+
+Use Dolphin’s service menu configuration to remove Audio Converter.
+
+### Option 2: Remove using `servicemenuinstaller`
+
+If you installed via Dolphin, you can also do:
 
 ```bash
-servicemenuinstaller uninstall dolphin-audio-converter-*.tar.gz
+servicemenuinstaller uninstall ~/.local/share/servicemenu-download/dolphin-audio-converter*.tar.gz
 ```
 
-If installed via Git:
+In the unusual case when the archive was stored elsewhere (meaning you have non-standard `$XDG_DATA_HOME`), you need to locate the archive and change the path above.
+
+### Option 3: Remove from a cloned repository
+
+From inside the cloned repository:
 
 ```bash
 ./uninstall.sh
-# or
-make uninstall
 ```
-
-> [!NOTE]
-> If you installed via the KDE Store (Pling), then navigate back to "Download New Services..." search for "Audio Converter" and click "Uninstall".
 
 ## Usage
 
