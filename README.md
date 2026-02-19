@@ -56,20 +56,20 @@ sudo zypper install ffmpeg kdialog libqt5-qttools libnotify-tools
 ### Method 2: GitHub Release
 
 1. Download the latest release from the [Releases page](https://github.com/SavageCore/dolphin-audio-converter/releases/latest).
-2. Extract the archive.
-3. Run `install.sh`.
+2. Install with `servicemenuinstaller`:
 
 ```bash
-tar -xvf dolphin-audio-converter-*.tar.gz
-cd dolphin-audio-converter-*
-./install.sh
+servicemenuinstaller install dolphin-audio-converter-*.tar.gz
 ```
 
-### Method 3: KDE Store
+### Method 3: KDE Store (Manual)
 
 1. Download the archive from [KDE Store](https://www.pling.com/p/2348606/)
-2. Extract the archive.
-3. Run `install.sh`.
+2. Install with `servicemenuinstaller`:
+
+```bash
+servicemenuinstaller install dolphin-audio-converter.bundle.tar.gz
+```
 
 ### Method 4: Git (Development)
 
@@ -89,6 +89,25 @@ The installer will:
 5. Apply any previously saved quality settings to the menu labels
 
 After installation, right-click any audio or video file in Dolphin and look for the **Audio Converter** submenu.
+
+## Uninstalling
+
+If installed manually via archive:
+
+```bash
+servicemenuinstaller uninstall dolphin-audio-converter-*.tar.gz
+```
+
+If installed via Git:
+
+```bash
+./uninstall.sh
+# or
+make uninstall
+```
+
+> [!NOTE]
+> If you installed via the KDE Store (Pling), then navigate back to "Download New Services..." search for "Audio Converter" and click "Uninstall".
 
 ## Usage
 
@@ -143,17 +162,10 @@ You can proceed or cancel per-file.
 ```
 dolphin-audio-converter.py     # Python backend (goes to ~/.local/bin/)
 dolphin-audio-converter.desktop  # KDE service menu definition
+
 install.sh                     # Installer
+uninstall.sh                   # Uninstaller
 ```
-
-## Uninstalling
-
-```bash
-./install.sh --uninstall
-```
-
-> [!NOTE]
-> If you installed via the KDE Store (Pling), deleting the entry from Dolphin's "Before" list only removes the downloaded archive. To fully remove the application (including the backend script and config), you must download and run the uninstall script above.
 
 ## How it works
 
@@ -214,6 +226,7 @@ tar --transform 's,^,dolphin-audio-converter/,' -czvf dolphin-audio-converter.bu
     dolphin-audio-converter.py \
     dolphin-audio-converter.desktop \
     install.sh \
+    uninstall.sh \
     Makefile \
     LICENSE \
     README.md

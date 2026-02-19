@@ -185,44 +185,4 @@ PYEOF
     echo
 }
 
-uninstall_app() {
-    header "Dolphin Audio Converter - Uninstall"
-
-    if [[ -f "$BIN_DEST" ]]; then
-        rm "$BIN_DEST"
-        success "Removed backend: $BIN_DEST"
-    else
-        warn "Backend not found: $BIN_DEST"
-    fi
-
-    if [[ -f "$DESKTOP_DEST" ]]; then
-        rm "$DESKTOP_DEST"
-        success "Removed service menu: $DESKTOP_DEST"
-    else
-        warn "Service menu not found: $DESKTOP_DEST"
-    fi
-
-    CONFIG_DIR="$HOME/.config/dolphin-audio-converter"
-    if [[ -d "$CONFIG_DIR" ]]; then
-        rm -rf "$CONFIG_DIR"
-        success "Removed config: $CONFIG_DIR"
-    fi
-
-    header "Refreshing KDE service menus"
-    if command -v kbuildsycoca6 &>/dev/null; then
-        kbuildsycoca6 --noincremental 2>/dev/null && success "kbuildsycoca6 cache rebuilt"
-    elif command -v kbuildsycoca5 &>/dev/null; then
-        kbuildsycoca5 --noincremental 2>/dev/null && success "kbuildsycoca5 cache rebuilt"
-    fi
-
-    echo
-    success "Uninstalled successfully."
-}
-
-# Main
-if [[ "${1:-}" == "--uninstall" ]]; then
-    uninstall_app
-else
-    install_app
-fi
-
+install_app

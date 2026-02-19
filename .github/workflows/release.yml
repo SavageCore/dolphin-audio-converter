@@ -19,7 +19,8 @@ jobs:
             --transform "s,^,dolphin-audio-converter-${{ github.ref_name }}/," \
             dolphin-audio-converter.py \
             dolphin-audio-converter.desktop \
-            install.sh
+            install.sh \
+            uninstall.sh
 
       - name: Release
         uses: softprops/action-gh-release@v2
